@@ -26,6 +26,7 @@ import com.fsck.k9.mail.Address
 import com.fsck.k9.ui.R
 import com.fsck.k9.ui.messagelist.MessageListAppearance
 import com.fsck.k9.ui.messagelist.MessageListItem
+import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction
 import com.google.android.material.textview.MaterialTextView
 import java.util.Locale
 import kotlin.math.max
@@ -43,6 +44,17 @@ class MessageViewHolder(
 ) : MessageListViewHolder(view) {
 
     var uniqueId: Long = -1L
+
+    /** IDs of the screen reader actions currently attached to [itemView], so they can be removed on rebind. */
+    val accessibilityActionIds: MutableList<Int> = mutableListOf()
+
+    /** Describes the screen reader actions currently attached to [itemView]; used to skip redundant rebinding. */
+    var accessibilityActionsKey: AccessibilityActionsKey? = null
+
+    data class AccessibilityActionsKey(
+        val uniqueId: Long,
+        val actions: List<Pair<MessageListItemAccessibilityAction, String>>,
+    )
 
     val selectedView: View = view.findViewById(R.id.selected)
     val contactPictureView: ImageView = view.findViewById(R.id.contact_picture)

@@ -1,0 +1,65 @@
+---
+# Builds the K-9 Mail accessibility fork and publishes the APK as a GitHub release,
+# so it can be downloaded straight from the phone.
+name: Build - K-9 accessibility APK
+
+on:
+  push:
+    branches:
+      - a11y-message-actions
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a11y-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write # needed to create the release
+
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Cleanup disk
+        uses: ./.github/actions/disk-cleanup
+
+      - name: Setup Gradle environment
+        uses: ./.github/actions/setup-gradle
+        with:
+          write-cache: 'true'
+
+      # Use a fixed debug key so each new build installs as an update over the previous one.
+      - name: Install fixed debug signing key
+        run: mkdir -p ~/.android && cp .github/a11y/debug.keystore ~/.android/debug.keystore
+
+      - name: Run message list unit tests
+        run: ./gradlew --no-daemon :legacy:ui:legacy:testDebugUnitTest
+
+      - name: Build K-9 Mail (foss debug)
+        run: ./gradlew --no-daemon :app-k9mail:assembleFossDebug
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_NUMBER: ${{ github.run_number }}
+          SHA: ${{ github.sha }}
+        run: |
+          apk="$(find app-k9mail/build/outputs/apk/foss/debug -name '*.apk' | head -n 1)"
+          test -n "$apk"
+          out="k9mail-accessible-${RUN_NUMBER}.apk"
+          cp "$apk" "$out"
+          gh release create "a11y-build-${RUN_NUMBER}" "$out" \
+            --target "$SHA" \
+            --title "K-9 Mail accessible build ${RUN_NUMBER}" \
+            --notes "Screen reader actions on message list items. Built from ${SHA}." \
+            --latest

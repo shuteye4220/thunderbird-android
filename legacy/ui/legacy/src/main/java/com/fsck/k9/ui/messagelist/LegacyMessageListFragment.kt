@@ -52,6 +52,7 @@ import app.k9mail.ui.utils.linearlayoutmanager.LinearLayoutManager
 import com.fsck.k9.K9
 import com.fsck.k9.activity.FolderInfoHolder
 import com.fsck.k9.activity.MessageSearchActivity
+import com.fsck.k9.activity.compose.MessageActions
 import com.fsck.k9.activity.misc.ContactPicture
 import com.fsck.k9.controller.MessagingControllerWrapper
 import com.fsck.k9.controller.UnifiedFolderSynchronizer
@@ -1514,6 +1515,79 @@ class LegacyMessageListFragment :
 
     override fun onToggleMessageFlag(item: MessageListItem) {
         setFlag(item, Flag.FLAGGED, !item.isStarred)
+    }
+
+    /**
+     * The current folder never changes for the lifetime of this fragment (it's decoded from the arguments in
+     * onCreate()), so cache the outbox check instead of doing a blocking folder lookup for every bound list item.
+     */
+    private val isOutboxForAccessibility: Boolean by lazy { isOutbox }
+
+    @Suppress("CyclomaticComplexMethod")
+    override fun getAccessibilityActions(item: MessageListItem): List<MessageListItemAccessibilityAction> {
+        val isOutbox = isOutboxForAccessibility
+        val account = item.account
+        val isDraft = item.folderId == account.draftsFolderId
+
+        return buildList {
+            add(MessageListItemAccessibilityAction.Delete)
+            if (!isOutbox && item.folderId != account.archiveFolderId) {
+                add(MessageListItemAccessibilityAction.Archive)
+            }
+            if (!isOutbox) {
+                add(MessageListItemAccessibilityAction.ToggleRead)
+                add(MessageListItemAccessibilityAction.ToggleStar)
+            }
+            if (!isOutbox && !isDraft) {
+                add(MessageListItemAccessibilityAction.Reply)
+                add(MessageListItemAccessibilityAction.ReplyAll)
+                add(MessageListItemAccessibilityAction.Forward)
+            }
+            if (!isOutbox && messagingController.isMoveCapable(account.id)) {
+                add(MessageListItemAccessibilityAction.Move)
+            }
+            if (!isOutbox && messagingController.isCopyCapable(account.id)) {
+                add(MessageListItemAccessibilityAction.Copy)
+            }
+            if (!isOutbox && account.hasSpamFolder() && item.folderId != account.spamFolderId) {
+                add(MessageListItemAccessibilityAction.Spam)
+            }
+            add(MessageListItemAccessibilityAction.ToggleSelection)
+        }
+    }
+
+    @Suppress("CyclomaticComplexMethod")
+    override fun onAccessibilityAction(item: MessageListItem, action: MessageListItemAccessibilityAction) {
+        // Guard against stale actions, e.g. if the account's folder configuration changed since the item was bound.
+        if (action !in getAccessibilityActions(item)) return
+
+        val messageReference = item.messageReference
+        when (action) {
+            MessageListItemAccessibilityAction.Delete -> onDelete(listOf(messageReference), item.threadCount)
+            MessageListItemAccessibilityAction.Archive -> {
+                if (item.account.hasArchiveFolder()) {
+                    onArchive(messageReference)
+                } else {
+                    setupArchiveFolderDialogFragmentFactory.show(
+                        accountUuid = item.account.id.toString(),
+                        fragmentManager = parentFragmentManager,
+                    )
+                }
+            }
+
+            MessageListItemAccessibilityAction.ToggleRead -> setFlag(item, Flag.SEEN, !item.isRead)
+            MessageListItemAccessibilityAction.ToggleStar -> setFlag(item, Flag.FLAGGED, !item.isStarred)
+            MessageListItemAccessibilityAction.Reply ->
+                MessageActions.actionReply(requireContext(), messageReference, false, null)
+            MessageListItemAccessibilityAction.ReplyAll ->
+                MessageActions.actionReply(requireContext(), messageReference, true, null)
+            MessageListItemAccessibilityAction.Forward ->
+                MessageActions.actionForward(requireContext(), messageReference, null)
+            MessageListItemAccessibilityAction.Move -> onMove(messageReference)
+            MessageListItemAccessibilityAction.Copy -> onCopy(messageReference)
+            MessageListItemAccessibilityAction.Spam -> onSpam(listOf(messageReference), item.threadCount)
+            MessageListItemAccessibilityAction.ToggleSelection -> toggleMessageSelect(item)
+        }
     }
 
     private fun updateActionMode() {

@@ -8,12 +8,15 @@ import android.view.View
 import android.view.View.OnClickListener
 import android.view.View.OnLongClickListener
 import android.view.ViewGroup
+import androidx.annotation.StringRes
 import androidx.compose.ui.platform.ComposeView
+import androidx.core.view.ViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import app.k9mail.core.android.common.contact.ContactRepository
 import app.k9mail.legacy.message.controller.MessageReference
 import com.fsck.k9.contacts.ContactPictureLoader
+import com.fsck.k9.ui.R
 import com.fsck.k9.ui.messagelist.item.BannerInlineListInAppNotificationViewHolder
 import com.fsck.k9.ui.messagelist.item.ComposableMessageViewHolder
 import com.fsck.k9.ui.messagelist.item.FooterViewHolder
@@ -27,6 +30,7 @@ import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
 import net.thunderbird.feature.account.avatar.AvatarMonogramCreator
 import net.thunderbird.feature.notification.api.content.InAppNotification
 import net.thunderbird.feature.notification.api.ui.action.NotificationAction
+import net.thunderbird.feature.mail.message.list.R as MessageListR
 
 private const val FOOTER_ID = 1L
 private const val IN_APP_NOTIFICATION_BANNER_INLINE_LIST_ID = -1L
@@ -279,11 +283,13 @@ class MessageListAdapter internal constructor(
                     )
                 } else {
                     val messageViewHolder = holder as MessageViewHolder
+                    val isItemSelected = isSelected(messageListItem)
                     messageViewHolder.bind(
                         messageListItem = formattedMessageListItem,
                         isActive = isActiveMessage(messageListItem),
-                        isSelected = isSelected(messageListItem),
+                        isSelected = isItemSelected,
                     )
+                    bindAccessibilityActions(messageViewHolder, messageListItem, isItemSelected)
                 }
             }
 
@@ -297,6 +303,65 @@ class MessageListAdapter internal constructor(
                 error("Unsupported type: $viewType")
             }
         }
+    }
+
+    /**
+     * Exposes per-message actions (delete, archive, star, ...) to screen readers via the item's accessibility node,
+     * so they can be performed from the screen reader's actions menu without opening the message.
+     *
+     * View holders are recycled, so actions from a previous binding are removed first.
+     */
+    private fun bindAccessibilityActions(holder: MessageViewHolder, item: MessageListItem, isSelected: Boolean) {
+        val uniqueId = item.uniqueId
+        val actions = listItemListener.getAccessibilityActions(item)
+            .map { action -> action to res.getString(accessibilityActionLabel(action, item, isSelected)) }
+
+        // Rows are rebound often (e.g. every minute to refresh the dates). Skip the work, and the accessibility
+        // events it would trigger, if this row already exposes exactly these actions for this message.
+        val bindingKey = MessageViewHolder.AccessibilityActionsKey(uniqueId, actions)
+        if (holder.accessibilityActionsKey == bindingKey) return
+
+        val itemView = holder.itemView
+        for (actionId in holder.accessibilityActionIds) {
+            ViewCompat.removeAccessibilityAction(itemView, actionId)
+        }
+        holder.accessibilityActionIds.clear()
+
+        for ((action, label) in actions) {
+            val actionId = ViewCompat.addAccessibilityAction(itemView, label) { _, _ ->
+                // Look the message up again so we act on its current state, not the state at bind time.
+                val currentItem = getItemById(uniqueId) ?: return@addAccessibilityAction false
+                listItemListener.onAccessibilityAction(currentItem, action)
+                true
+            }
+            // addAccessibilityAction() returns View.NO_ID when the pool of custom action IDs is exhausted.
+            if (actionId != View.NO_ID) {
+                holder.accessibilityActionIds.add(actionId)
+            }
+        }
+        holder.accessibilityActionsKey = bindingKey
+    }
+
+    @StringRes
+    private fun accessibilityActionLabel(
+        action: MessageListItemAccessibilityAction,
+        item: MessageListItem,
+        isSelected: Boolean,
+    ): Int = when (action) {
+        MessageListItemAccessibilityAction.Delete -> R.string.delete_action
+        MessageListItemAccessibilityAction.Archive -> R.string.archive_action
+        MessageListItemAccessibilityAction.ToggleRead ->
+            if (item.isRead) R.string.mark_as_unread_action else R.string.mark_as_read_action
+        MessageListItemAccessibilityAction.ToggleStar ->
+            if (item.isStarred) R.string.unflag_action else R.string.flag_action
+        MessageListItemAccessibilityAction.Reply -> R.string.reply_action
+        MessageListItemAccessibilityAction.ReplyAll -> R.string.reply_all_action
+        MessageListItemAccessibilityAction.Forward -> R.string.forward_action
+        MessageListItemAccessibilityAction.Move -> R.string.move_action
+        MessageListItemAccessibilityAction.Copy -> R.string.copy_action
+        MessageListItemAccessibilityAction.Spam -> R.string.spam_action
+        MessageListItemAccessibilityAction.ToggleSelection ->
+            if (isSelected) MessageListR.string.swipe_action_deselect else MessageListR.string.swipe_action_select
     }
 
     private fun isActiveMessage(item: MessageListItem): Boolean {
@@ -418,6 +483,16 @@ interface MessageListItemActionListener {
     fun onFooterClicked()
     fun filterInAppNotificationEvents(notification: InAppNotification): Boolean
     fun onNotificationActionClicked(action: NotificationAction)
+
+    /**
+     * Returns the actions that should be offered to screen readers for [item], in presentation order.
+     */
+    fun getAccessibilityActions(item: MessageListItem): List<MessageListItemAccessibilityAction> = emptyList()
+
+    /**
+     * Called when the user triggers [action] on [item] from their screen reader's actions menu.
+     */
+    fun onAccessibilityAction(item: MessageListItem, action: MessageListItemAccessibilityAction) = Unit
 }
 
 sealed interface MessageListViewItem {
