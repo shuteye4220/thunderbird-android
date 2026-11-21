@@ -18,6 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import app.k9mail.legacy.ui.folder.FolderNameFormatter
 import net.thunderbird.components.ui.bolt.atom.icon.Icon
@@ -57,6 +62,22 @@ internal fun FolderListItem(
         starredCount = treeFolder.totalStarredCount
     }
 
+    val hasSubfolders = treeFolder !== null && treeFolder.children.isNotEmpty()
+    val expandedState = stringResource(
+        if (isExpanded.value) {
+            R.string.navigation_drawer_dropdown_account_view_expanded
+        } else {
+            R.string.navigation_drawer_dropdown_account_view_collapsed
+        },
+    )
+    val toggleSubfoldersLabel = stringResource(
+        if (isExpanded.value) {
+            R.string.navigation_drawer_dropdown_folder_collapse_subfolders
+        } else {
+            R.string.navigation_drawer_dropdown_folder_expand_subfolders
+        },
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -83,7 +104,21 @@ internal fun FolderListItem(
                     else -> onClick(displayFolder)
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    // The small expand button is hidden from screen readers (see NavigationDrawerLabel); expose its
+                    // state and action on the folder row instead.
+                    if (hasSubfolders) {
+                        stateDescription = expandedState
+                        customActions = listOf(
+                            CustomAccessibilityAction(toggleSubfoldersLabel) {
+                                isExpanded.value = !isExpanded.value
+                                true
+                            },
+                        )
+                    }
+                },
             icon = { Icon(imageVector = mapFolderIcon(displayFolder)) },
         )
 
@@ -130,20 +165,23 @@ private fun NavigationDrawerLabel(
             modifier = Modifier.weight(1f),
         )
         if (expandableState?.value != null) {
-            Box(
-                modifier = Modifier
-                    .size(BoltTheme.sizes.iconAvatar)
-                    .padding(
-                        start = BoltTheme.spacings.quarter,
-                        end = BoltTheme.spacings.quarter,
+            // Exposed as a state and action on the folder row instead, see FolderListItem.
+            Box(modifier = Modifier.clearAndSetSemantics {}) {
+                Box(
+                    modifier = Modifier
+                        .size(BoltTheme.sizes.iconAvatar)
+                        .padding(
+                            start = BoltTheme.spacings.quarter,
+                            end = BoltTheme.spacings.quarter,
+                        )
+                        .clip(CircleShape)
+                        .clickable(onClick = { expandableState.value = !expandableState.value }),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AnimatedExpandIcon(
+                        isExpanded = expandableState.value,
                     )
-                    .clip(CircleShape)
-                    .clickable(onClick = { expandableState.value = !expandableState.value }),
-                contentAlignment = Alignment.Center,
-            ) {
-                AnimatedExpandIcon(
-                    isExpanded = expandableState.value,
-                )
+                }
             }
         }
         badge()

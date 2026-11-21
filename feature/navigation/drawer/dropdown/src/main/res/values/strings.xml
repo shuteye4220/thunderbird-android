@@ -27,6 +27,10 @@
     <string name="navigation_drawer_dropdown_account_view_expanded">Expanded</string>
     <!-- Screen reader action on the account header that switches to the next account. %s is the account name. -->
     <string name="navigation_drawer_dropdown_account_view_switch_to_account">Switch to <xliff:g id="account_name">%s</xliff:g></string>
+    <!-- Screen reader action on a folder that shows its subfolders -->
+    <string name="navigation_drawer_dropdown_folder_expand_subfolders">Show subfolders</string>
+    <!-- Screen reader action on a folder that hides its subfolders -->
+    <string name="navigation_drawer_dropdown_folder_collapse_subfolders">Hide subfolders</string>
     <!-- Screen reader description of the warning icon shown on an account that has a problem -->
     <string name="navigation_drawer_dropdown_account_error">Account error</string>
     <!-- Screen reader description of the unread count badge -->

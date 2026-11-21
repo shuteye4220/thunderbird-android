@@ -7,9 +7,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import net.thunderbird.components.ui.bolt.atom.icon.Icons
 import net.thunderbird.components.ui.bolt.organism.drawer.NavigationDrawerItemBadge
 import net.thunderbird.components.ui.bolt.theme.BoltTheme
+import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.countsContentDescription
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.labelForCount
 
 @Composable
@@ -34,8 +37,14 @@ private fun FolderCountAndStarredBadge(
     showStarredCount: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val countsDescription = countsContentDescription(unreadCount, starredCount, showStarredCount)
+
     Column(
-        modifier = modifier,
+        modifier = modifier.clearAndSetSemantics {
+            if (countsDescription.isNotEmpty()) {
+                contentDescription = countsDescription
+            }
+        },
         horizontalAlignment = Alignment.End,
     ) {
         val resources = LocalResources.current
