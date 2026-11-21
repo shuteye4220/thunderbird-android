@@ -2,13 +2,17 @@ package com.fsck.k9.ui.messagelist
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
 import com.fsck.k9.ui.messagelist.MessageListAccessibilityActionOrderStore.Companion.defaultOrder
 import com.fsck.k9.ui.messagelist.MessageListAccessibilityActionOrderStore.Companion.move
 import com.fsck.k9.ui.messagelist.MessageListAccessibilityActionOrderStore.Companion.normalizeOrder
+import com.fsck.k9.ui.messagelist.MessageListAccessibilityActionOrderStore.Companion.parse
 import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction.Archive
+import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction.Copy
 import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction.Delete
 import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction.Reply
+import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction.Spam
 import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction.ToggleRead
 import kotlin.test.Test
 
@@ -36,6 +40,20 @@ class MessageListAccessibilityActionOrderStoreTest {
 
         assertThat(testSubject.take(2)).containsExactly(Reply, Delete)
         assertThat(testSubject.size).isEqualTo(defaultOrder.size)
+    }
+
+    @Test
+    fun `parse should keep known actions and drop unknown ones`() {
+        val testSubject = parse(persisted = "Copy,Bogus,Spam")
+
+        assertThat(testSubject).containsExactly(Copy, Spam)
+    }
+
+    @Test
+    fun `parse of a missing value should be empty`() {
+        val testSubject = parse(persisted = null)
+
+        assertThat(testSubject).isEmpty()
     }
 
     @Test

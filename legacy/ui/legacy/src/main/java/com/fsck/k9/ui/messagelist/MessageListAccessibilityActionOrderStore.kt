@@ -4,9 +4,10 @@ import android.content.Context
 import androidx.core.content.edit
 
 /**
- * Stores the user's preferred order of the screen reader actions offered on message list items.
+ * Stores the user's preferred order of the screen reader actions offered on message list items, and which of them
+ * are hidden.
  *
- * The order is kept in its own preferences file and is not part of the settings export.
+ * These are kept in their own preferences file and are not part of the settings export.
  */
 class MessageListAccessibilityActionOrderStore(context: Context) {
     private val preferences = context.applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
@@ -21,13 +22,30 @@ class MessageListAccessibilityActionOrderStore(context: Context) {
         }
     }
 
+    fun loadHidden(): Set<MessageListItemAccessibilityAction> {
+        return parse(preferences.getString(KEY_HIDDEN, null)).toSet()
+    }
+
+    fun saveHidden(hidden: Set<MessageListItemAccessibilityAction>) {
+        preferences.edit {
+            putString(KEY_HIDDEN, hidden.sortedBy { it.ordinal }.joinToString(separator = SEPARATOR) { it.name })
+        }
+    }
+
+    /**
+     * Restores the default order and shows all actions.
+     */
     fun reset() {
-        preferences.edit { remove(KEY_ORDER) }
+        preferences.edit {
+            remove(KEY_ORDER)
+            remove(KEY_HIDDEN)
+        }
     }
 
     companion object {
         private const val PREFERENCES_NAME = "message_list_accessibility_actions"
         private const val KEY_ORDER = "order"
+        private const val KEY_HIDDEN = "hidden"
         private const val SEPARATOR = ","
 
         val defaultOrder: List<MessageListItemAccessibilityAction> = MessageListItemAccessibilityAction.entries
@@ -37,12 +55,17 @@ class MessageListAccessibilityActionOrderStore(context: Context) {
          * value (e.g. ones added in a later version) are appended in their default order.
          */
         fun normalizeOrder(persisted: String?): List<MessageListItemAccessibilityAction> {
-            val parsed = persisted
+            return normalize(parse(persisted))
+        }
+
+        /**
+         * Parses a comma-separated list of action names, ignoring unknown entries.
+         */
+        internal fun parse(persisted: String?): List<MessageListItemAccessibilityAction> {
+            return persisted
                 ?.split(SEPARATOR)
                 ?.mapNotNull { name -> MessageListItemAccessibilityAction.entries.firstOrNull { it.name == name } }
                 .orEmpty()
-
-            return normalize(parsed)
         }
 
         private fun normalize(

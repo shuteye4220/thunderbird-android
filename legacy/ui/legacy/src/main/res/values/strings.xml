@@ -1159,9 +1159,13 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <!-- For unread messages the first line of a message list item is modified by this to improve the experience for people with screen readers. -->
     <!-- Title of the settings screen for ordering the screen reader actions on messages in the message list -->
     <string name="message_list_action_order_settings_title">Screen reader message actions</string>
-    <string name="message_list_action_order_settings_summary">Choose the order of message actions in your screen reader\'s actions menu</string>
-    <string name="message_list_action_order_settings_description">These actions are offered on each message in the message list through your screen reader\'s actions menu. Actions that don\'t apply to a message, such as Archive in the Archive folder, are skipped.</string>
-    <string name="message_list_action_order_reset">Reset to default order</string>
+    <string name="message_list_action_order_settings_summary">Choose and order the message actions in your screen reader\'s actions menu</string>
+    <string name="message_list_action_order_settings_description">These actions are offered on each message in the message list through your screen reader\'s actions menu. Turn off actions you don\'t use. Actions that don\'t apply to a message, such as Archive in the Archive folder, are skipped.</string>
+    <string name="message_list_action_order_reset">Reset to defaults</string>
+    <!-- Screen reader state of an action that is offered in the actions menu -->
+    <string name="message_list_action_order_shown">Shown</string>
+    <!-- Screen reader state of an action that has been turned off -->
+    <string name="message_list_action_order_hidden">Hidden</string>
     <!-- Screen reader state of an action in the order list. %1$d is its position, %2$d the number of actions. -->
     <string name="message_list_action_order_position">Position <xliff:g id="position">%1$d</xliff:g> of <xliff:g id="count">%2$d</xliff:g></string>
     <string name="message_list_action_order_move_up">Move up</string>

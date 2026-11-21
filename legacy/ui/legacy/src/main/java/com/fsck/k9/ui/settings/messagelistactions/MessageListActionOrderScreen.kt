@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -22,7 +25,9 @@ import androidx.compose.ui.semantics.stateDescription
 import com.fsck.k9.ui.R
 import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
 import net.thunderbird.components.ui.bolt.atom.Surface
+import net.thunderbird.components.ui.bolt.atom.Switch
 import net.thunderbird.components.ui.bolt.atom.button.ButtonIcon
 import net.thunderbird.components.ui.bolt.atom.button.ButtonText
 import net.thunderbird.components.ui.bolt.atom.icon.Icons
@@ -31,15 +36,18 @@ import net.thunderbird.components.ui.bolt.atom.text.TextBodyMedium
 import net.thunderbird.components.ui.bolt.theme.BoltTheme
 
 /**
- * Lists the message list screen reader actions in their current order.
+ * Lists the message list screen reader actions in their current order, each with a switch to turn it off.
  *
- * Each action is a single screen reader stop announcing its position, with "Move up", "Move down", "Move to top" and
- * "Move to bottom" as custom actions. The arrow buttons are there for touch users and hidden from screen readers.
+ * Each action is a single screen reader stop: double-tapping it toggles the switch, its state is announced as
+ * "Shown/Hidden, Position x of y", and "Move up", "Move down", "Move to top" and "Move to bottom" are custom actions.
+ * The switch and arrow buttons are there for touch users and hidden from screen readers.
  */
 @Composable
 internal fun MessageListActionOrderScreen(
     actions: ImmutableList<MessageListItemAccessibilityAction>,
+    hiddenActions: ImmutableSet<MessageListItemAccessibilityAction>,
     onMove: (action: MessageListItemAccessibilityAction, toIndex: Int) -> Unit,
+    onShownChange: (action: MessageListItemAccessibilityAction, isShown: Boolean) -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -65,7 +73,9 @@ internal fun MessageListActionOrderScreen(
                     action = action,
                     index = index,
                     count = actions.size,
+                    isShown = action !in hiddenActions,
                     onMove = onMove,
+                    onShownChange = onShownChange,
                     modifier = Modifier.animateItem(),
                 )
             }
@@ -86,12 +96,17 @@ private fun ActionOrderRow(
     action: MessageListItemAccessibilityAction,
     index: Int,
     count: Int,
+    isShown: Boolean,
     onMove: (action: MessageListItemAccessibilityAction, toIndex: Int) -> Unit,
+    onShownChange: (action: MessageListItemAccessibilityAction, isShown: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val canMoveUp = index > 0
     val canMoveDown = index < count - 1
     val position = stringResource(R.string.message_list_action_order_position, index + 1, count)
+    val visibility = stringResource(
+        if (isShown) R.string.message_list_action_order_shown else R.string.message_list_action_order_hidden,
+    )
     val moveUpLabel = stringResource(R.string.message_list_action_order_move_up)
     val moveDownLabel = stringResource(R.string.message_list_action_order_move_down)
     val moveToTopLabel = stringResource(R.string.message_list_action_order_move_to_top)
@@ -101,8 +116,13 @@ private fun ActionOrderRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = BoltTheme.sizes.iconAvatar)
-            .semantics(mergeDescendants = true) {
-                stateDescription = position
+            .toggleable(
+                value = isShown,
+                role = Role.Switch,
+                onValueChange = { onShownChange(action, it) },
+            )
+            .semantics {
+                stateDescription = "$visibility, $position"
                 fun moveAction(label: String, toIndex: Int) = CustomAccessibilityAction(label) {
                     onMove(action, toIndex)
                     true
@@ -120,13 +140,20 @@ private fun ActionOrderRow(
     ) {
         TextBodyLarge(
             text = stringResource(action.settingsLabelRes),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .alpha(if (isShown) 1f else HIDDEN_ACTION_ALPHA),
         )
         Row(
-            // Exposed as custom actions on the row instead.
+            // Exposed as the row's toggle state and custom actions instead.
             modifier = Modifier.clearAndSetSemantics {},
             horizontalArrangement = Arrangement.spacedBy(BoltTheme.spacings.default),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Switch(
+                checked = isShown,
+                onCheckedChange = { onShownChange(action, it) },
+            )
             ButtonIcon(
                 onClick = { onMove(action, index - 1) },
                 imageVector = Icons.Outlined.ExpandLess,
@@ -142,6 +169,8 @@ private fun ActionOrderRow(
         }
     }
 }
+
+private const val HIDDEN_ACTION_ALPHA = 0.6f
 
 @get:StringRes
 internal val MessageListItemAccessibilityAction.settingsLabelRes: Int

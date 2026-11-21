@@ -13,7 +13,10 @@ import androidx.fragment.app.Fragment
 import com.fsck.k9.ui.messagelist.MessageListAccessibilityActionOrderStore
 import com.fsck.k9.ui.messagelist.MessageListItemAccessibilityAction
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.collections.immutable.toImmutableSet
 import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
 import org.koin.android.ext.android.inject
 
@@ -27,9 +30,11 @@ class MessageListActionOrderSettingsFragment : Fragment() {
     private var order: ImmutableList<MessageListItemAccessibilityAction> by mutableStateOf(
         MessageListAccessibilityActionOrderStore.defaultOrder.toImmutableList(),
     )
+    private var hidden: ImmutableSet<MessageListItemAccessibilityAction> by mutableStateOf(persistentSetOf())
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         order = orderStore.load().toImmutableList()
+        hidden = orderStore.loadHidden().toImmutableSet()
 
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -37,7 +42,9 @@ class MessageListActionOrderSettingsFragment : Fragment() {
                 themeProvider.WithTheme {
                     MessageListActionOrderScreen(
                         actions = order,
+                        hiddenActions = hidden,
                         onMove = ::onMove,
+                        onShownChange = ::onShownChange,
                         onReset = ::onReset,
                     )
                 }
@@ -53,8 +60,17 @@ class MessageListActionOrderSettingsFragment : Fragment() {
         orderStore.save(newOrder)
     }
 
+    private fun onShownChange(action: MessageListItemAccessibilityAction, isShown: Boolean) {
+        val newHidden = if (isShown) hidden - action else hidden + action
+        if (newHidden == hidden) return
+
+        hidden = newHidden.toImmutableSet()
+        orderStore.saveHidden(newHidden)
+    }
+
     private fun onReset() {
         orderStore.reset()
         order = MessageListAccessibilityActionOrderStore.defaultOrder.toImmutableList()
+        hidden = persistentSetOf()
     }
 }

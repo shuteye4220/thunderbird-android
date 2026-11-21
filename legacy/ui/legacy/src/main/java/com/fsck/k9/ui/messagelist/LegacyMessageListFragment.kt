@@ -930,15 +930,17 @@ class LegacyMessageListFragment :
     }
 
     /**
-     * Picks up changes made on the screen reader action order settings screen and rebinds the visible rows so their
-     * actions are offered in the new order.
+     * Picks up changes made on the screen reader action settings screen and rebinds the visible rows so their
+     * actions are offered in the new order, without hidden actions.
      */
     private fun refreshAccessibilityActionOrder() {
         val order = accessibilityActionOrderStore.load()
-        if (order == accessibilityActionOrder) return
+        val hidden = accessibilityActionOrderStore.loadHidden()
+        if (order == accessibilityActionOrder && hidden == hiddenAccessibilityActions) return
 
         val isFirstLoad = accessibilityActionOrder == null
         accessibilityActionOrder = order
+        hiddenAccessibilityActions = hidden
         accessibilityActionRank = order.withIndex().associate { (index, action) -> action to index }
         if (!isFirstLoad) {
             adapter.notifyItemRangeChanged(0, adapter.itemCount)
@@ -1543,6 +1545,7 @@ class LegacyMessageListFragment :
 
     private var accessibilityActionOrder: List<MessageListItemAccessibilityAction>? = null
     private var accessibilityActionRank: Map<MessageListItemAccessibilityAction, Int> = emptyMap()
+    private var hiddenAccessibilityActions: Set<MessageListItemAccessibilityAction> = emptySet()
 
     @Suppress("CyclomaticComplexMethod")
     override fun getAccessibilityActions(item: MessageListItem): List<MessageListItemAccessibilityAction> {
@@ -1554,7 +1557,7 @@ class LegacyMessageListFragment :
             refreshAccessibilityActionOrder()
         }
 
-        return buildList {
+        val availableActions = buildList {
             add(MessageListItemAccessibilityAction.Delete)
             if (!isOutbox && item.folderId != account.archiveFolderId) {
                 add(MessageListItemAccessibilityAction.Archive)
@@ -1578,7 +1581,11 @@ class LegacyMessageListFragment :
                 add(MessageListItemAccessibilityAction.Spam)
             }
             add(MessageListItemAccessibilityAction.ToggleSelection)
-        }.sortedBy { action -> accessibilityActionRank[action] ?: action.ordinal }
+        }
+
+        return availableActions
+            .filterNot { action -> action in hiddenAccessibilityActions }
+            .sortedBy { action -> accessibilityActionRank[action] ?: action.ordinal }
     }
 
     @Suppress("CyclomaticComplexMethod")
