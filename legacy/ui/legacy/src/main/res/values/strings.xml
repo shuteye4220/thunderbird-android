@@ -1168,8 +1168,14 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="message_list_action_order_hidden">Hidden</string>
     <!-- Screen reader state of an action in the order list. %1$d is its position, %2$d the number of actions. -->
     <string name="message_list_action_order_position">Position <xliff:g id="position">%1$d</xliff:g> of <xliff:g id="count">%2$d</xliff:g></string>
-    <string name="message_list_action_order_move_up">Move up</string>
-    <string name="message_list_action_order_move_down">Move down</string>
+    <!-- Action that moves an item one place up in the action order list. %s is the name of the item it moves above. -->
+    <string name="message_list_action_order_move_above">Move above <xliff:g id="item">%s</xliff:g></string>
+    <!-- Action that moves an item one place down in the action order list. %s is the name of the item it moves below. -->
+    <string name="message_list_action_order_move_below">Move below <xliff:g id="item">%s</xliff:g></string>
+    <!-- Screen reader action that hides an action from the actions menu on messages -->
+    <string name="message_list_action_order_turn_off">Turn off</string>
+    <!-- Screen reader action that shows a hidden action in the actions menu on messages again -->
+    <string name="message_list_action_order_turn_on">Turn on</string>
     <string name="message_list_action_order_move_to_top">Move to top</string>
     <string name="message_list_action_order_move_to_bottom">Move to bottom</string>
     <!-- Name of the action that marks a message as read or unread, depending on its state -->

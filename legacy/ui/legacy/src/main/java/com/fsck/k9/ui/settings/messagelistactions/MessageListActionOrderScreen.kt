@@ -10,14 +10,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -38,9 +36,10 @@ import net.thunderbird.components.ui.bolt.theme.BoltTheme
 /**
  * Lists the message list screen reader actions in their current order, each with a switch to turn it off.
  *
- * Each action is a single screen reader stop: double-tapping it toggles the switch, its state is announced as
- * "Shown/Hidden, Position x of y", and "Move up", "Move down", "Move to top" and "Move to bottom" are custom actions.
- * The switch and arrow buttons are there for touch users and hidden from screen readers.
+ * Like the messages themselves, each action is a single screen reader stop announced as
+ * "Name, Shown/Hidden, Position x of y", with everything else in the screen reader's actions menu: "Turn off/on",
+ * "Move above <previous>", "Move below <next>", "Move to top" and "Move to bottom". The switch and arrow buttons are
+ * there for touch users and hidden from screen readers.
  */
 @Composable
 internal fun MessageListActionOrderScreen(
@@ -71,6 +70,8 @@ internal fun MessageListActionOrderScreen(
             ) { index, action ->
                 ActionOrderRow(
                     action = action,
+                    previousActionLabel = actions.getOrNull(index - 1)?.let { stringResource(it.settingsLabelRes) },
+                    nextActionLabel = actions.getOrNull(index + 1)?.let { stringResource(it.settingsLabelRes) },
                     index = index,
                     count = actions.size,
                     isShown = action !in hiddenActions,
@@ -94,6 +95,8 @@ internal fun MessageListActionOrderScreen(
 @Composable
 private fun ActionOrderRow(
     action: MessageListItemAccessibilityAction,
+    previousActionLabel: String?,
+    nextActionLabel: String?,
     index: Int,
     count: Int,
     isShown: Boolean,
@@ -101,14 +104,17 @@ private fun ActionOrderRow(
     onShownChange: (action: MessageListItemAccessibilityAction, isShown: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val canMoveUp = index > 0
-    val canMoveDown = index < count - 1
+    val canMoveUp = previousActionLabel != null
+    val canMoveDown = nextActionLabel != null
     val position = stringResource(R.string.message_list_action_order_position, index + 1, count)
     val visibility = stringResource(
         if (isShown) R.string.message_list_action_order_shown else R.string.message_list_action_order_hidden,
     )
-    val moveUpLabel = stringResource(R.string.message_list_action_order_move_up)
-    val moveDownLabel = stringResource(R.string.message_list_action_order_move_down)
+    val toggleLabel = stringResource(
+        if (isShown) R.string.message_list_action_order_turn_off else R.string.message_list_action_order_turn_on,
+    )
+    val moveUpLabel = previousActionLabel?.let { stringResource(R.string.message_list_action_order_move_above, it) }
+    val moveDownLabel = nextActionLabel?.let { stringResource(R.string.message_list_action_order_move_below, it) }
     val moveToTopLabel = stringResource(R.string.message_list_action_order_move_to_top)
     val moveToBottomLabel = stringResource(R.string.message_list_action_order_move_to_bottom)
 
@@ -116,12 +122,7 @@ private fun ActionOrderRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = BoltTheme.sizes.iconAvatar)
-            .toggleable(
-                value = isShown,
-                role = Role.Switch,
-                onValueChange = { onShownChange(action, it) },
-            )
-            .semantics {
+            .semantics(mergeDescendants = true) {
                 stateDescription = "$visibility, $position"
                 fun moveAction(label: String, toIndex: Int) = CustomAccessibilityAction(label) {
                     onMove(action, toIndex)
@@ -129,8 +130,14 @@ private fun ActionOrderRow(
                 }
 
                 customActions = buildList {
-                    if (canMoveUp) add(moveAction(moveUpLabel, index - 1))
-                    if (canMoveDown) add(moveAction(moveDownLabel, index + 1))
+                    add(
+                        CustomAccessibilityAction(toggleLabel) {
+                            onShownChange(action, !isShown)
+                            true
+                        },
+                    )
+                    if (moveUpLabel != null) add(moveAction(moveUpLabel, index - 1))
+                    if (moveDownLabel != null) add(moveAction(moveDownLabel, index + 1))
                     if (canMoveUp) add(moveAction(moveToTopLabel, 0))
                     if (canMoveDown) add(moveAction(moveToBottomLabel, count - 1))
                 }
