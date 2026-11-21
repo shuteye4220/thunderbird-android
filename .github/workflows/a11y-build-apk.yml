@@ -42,8 +42,8 @@ jobs:
       - name: Install fixed debug signing key
         run: mkdir -p ~/.android && cp .github/a11y/debug.keystore ~/.android/debug.keystore
 
-      - name: Run message list unit tests
-        run: ./gradlew --no-daemon :legacy:ui:legacy:testDebugUnitTest
+      - name: Run message list and drawer unit tests
+        run: ./gradlew --no-daemon :legacy:ui:legacy:testDebugUnitTest :feature:navigation:drawer:dropdown:testDebugUnitTest
 
       - name: Build K-9 Mail (foss debug)
         run: ./gradlew --no-daemon :app-k9mail:assembleFossDebug
