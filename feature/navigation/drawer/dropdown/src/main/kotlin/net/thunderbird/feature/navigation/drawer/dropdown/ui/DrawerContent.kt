@@ -36,6 +36,7 @@ import net.thunderbird.feature.navigation.drawer.dropdown.ui.account.AccountList
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.account.AccountView
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.DRAWER_WIDTH
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.getAdditionalWidth
+import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.getDisplayAccountName
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.folder.FolderList
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.setting.AccountSettingList
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.setting.FolderSettingList
@@ -91,12 +92,18 @@ internal fun DrawerContent(
             modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         ) {
             selectedAccount?.let {
+                // Same account the view model switches to when the avatar is tapped (next one, wrapping around).
+                val nextAccount = state.accounts.getOrNull(
+                    (state.accounts.indexOf(selectedAccount) + 1) % state.accounts.size,
+                )?.takeIf { it != selectedAccount }
+
                 AccountView(
                     account = selectedAccount,
                     onClick = { onEvent(Event.OnAccountSelectorClick) },
                     onAvatarClick = { onEvent(Event.OnAccountViewClick(selectedAccount)) },
                     showAccountSelection = state.showAccountSelection,
                     isShowAnimations = areAnimationsEnabled,
+                    nextAccountName = nextAccount?.let { getDisplayAccountName(it) },
                 )
 
                 DividerHorizontal()

@@ -17,4 +17,26 @@
     <string name="navigation_drawer_dropdown_folder_item_badge_count_greater_than_99">99+</string>
     <!-- This is displayed as the unread count of a folder in the folder drawer when the number of unread messages exceeds 1000. Space is extremely limited. Keep this as short as possible. -->
     <string name="navigation_drawer_dropdown_folder_item_badge_count_greater_than_1_000">1k+</string>
+    <!-- Screen reader label for double-tapping the account header when the account list is hidden -->
+    <string name="navigation_drawer_dropdown_account_view_show_account_list">Show account list</string>
+    <!-- Screen reader label for double-tapping the account header when the account list is shown -->
+    <string name="navigation_drawer_dropdown_account_view_hide_account_list">Hide account list</string>
+    <!-- Screen reader state of the account header when the account list is hidden -->
+    <string name="navigation_drawer_dropdown_account_view_collapsed">Collapsed</string>
+    <!-- Screen reader state of the account header when the account list is shown -->
+    <string name="navigation_drawer_dropdown_account_view_expanded">Expanded</string>
+    <!-- Screen reader action on the account header that switches to the next account. %s is the account name. -->
+    <string name="navigation_drawer_dropdown_account_view_switch_to_account">Switch to <xliff:g id="account_name">%s</xliff:g></string>
+    <!-- Screen reader description of the warning icon shown on an account that has a problem -->
+    <string name="navigation_drawer_dropdown_account_error">Account error</string>
+    <!-- Screen reader description of the unread count badge -->
+    <plurals name="navigation_drawer_dropdown_unread_count">
+        <item quantity="one"><xliff:g id="count">%d</xliff:g> unread</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> unread</item>
+    </plurals>
+    <!-- Screen reader description of the starred count badge -->
+    <plurals name="navigation_drawer_dropdown_starred_count">
+        <item quantity="one"><xliff:g id="count">%d</xliff:g> starred</item>
+        <item quantity="other"><xliff:g id="count">%d</xliff:g> starred</item>
+    </plurals>
 </resources>

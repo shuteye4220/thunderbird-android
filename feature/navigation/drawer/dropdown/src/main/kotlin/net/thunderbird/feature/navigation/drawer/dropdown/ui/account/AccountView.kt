@@ -25,6 +25,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -50,9 +58,19 @@ internal fun AccountView(
     showAccountSelection: Boolean,
     isShowAnimations: Boolean,
     modifier: Modifier = Modifier,
+    nextAccountName: String? = null,
 ) {
     AccountLayout(
         onClick = onClick,
+        isExpanded = showAccountSelection,
+        // Tapping the avatar switches to the next account. Screen readers get that as a named action on the whole
+        // row instead of an unlabeled button.
+        switchAccountActionLabel = if (!showAccountSelection && nextAccountName != null) {
+            stringResource(R.string.navigation_drawer_dropdown_account_view_switch_to_account, nextAccountName)
+        } else {
+            null
+        },
+        onSwitchAccount = onAvatarClick,
         modifier = modifier,
     ) {
         if (showAccountSelection) {
@@ -100,11 +118,15 @@ private fun RowScope.AccountSelectedView(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(BoltTheme.spacings.double),
+            // While animating to another account, hide the outgoing one so screen readers only announce the new one.
+            modifier = if (targetAccount.id != account.id) Modifier.clearAndSetSemantics {} else Modifier,
         ) {
             AccountAvatar(
                 account = targetAccount,
                 onClick = { onAvatarClick() },
                 selected = false,
+                // Exposed as a custom action on the row, see AccountLayout.
+                modifier = Modifier.clearAndSetSemantics {},
             )
 
             Column(
@@ -150,12 +172,47 @@ private fun RowScope.AccountSelectionView() {
 @Composable
 private fun AccountLayout(
     onClick: () -> Unit,
+    isExpanded: Boolean,
+    switchAccountActionLabel: String?,
+    onSwitchAccount: () -> Unit,
     modifier: Modifier = Modifier,
     content: @Composable RowScope.() -> Unit,
 ) {
+    val clickLabel = stringResource(
+        if (isExpanded) {
+            R.string.navigation_drawer_dropdown_account_view_hide_account_list
+        } else {
+            R.string.navigation_drawer_dropdown_account_view_show_account_list
+        },
+    )
+    val expandedState = stringResource(
+        if (isExpanded) {
+            R.string.navigation_drawer_dropdown_account_view_expanded
+        } else {
+            R.string.navigation_drawer_dropdown_account_view_collapsed
+        },
+    )
+
     Box(
         modifier = modifier
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = clickLabel,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .semantics {
+                stateDescription = expandedState
+                // Announce the new account name when switching accounts from the row's actions.
+                liveRegion = LiveRegionMode.Polite
+                if (switchAccountActionLabel != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(switchAccountActionLabel) {
+                            onSwitchAccount()
+                            true
+                        },
+                    )
+                }
+            }
             .padding(
                 top = BoltTheme.spacings.default,
                 start = BoltTheme.spacings.triple,

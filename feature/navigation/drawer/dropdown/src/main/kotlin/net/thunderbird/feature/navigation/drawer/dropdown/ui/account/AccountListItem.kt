@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +21,7 @@ import net.thunderbird.components.ui.bolt.organism.drawer.NavigationDrawerItem
 import net.thunderbird.components.ui.bolt.theme.BoltTheme
 import net.thunderbird.feature.account.avatar.ui.Avatar
 import net.thunderbird.feature.account.avatar.ui.AvatarSize
+import net.thunderbird.feature.navigation.drawer.dropdown.R
 import net.thunderbird.feature.navigation.drawer.dropdown.domain.entity.DisplayAccount
 import net.thunderbird.feature.navigation.drawer.dropdown.domain.entity.MailDisplayAccount
 import net.thunderbird.feature.navigation.drawer.dropdown.ui.common.getDisplayAccountAvatar
@@ -48,6 +51,8 @@ internal fun AccountListItem(
                 avatar = avatar,
                 color = color,
                 size = AvatarSize.MEDIUM,
+                // Decorative: the account name is already read from the label.
+                modifier = Modifier.clearAndSetSemantics {},
             )
         },
         badge = {
@@ -55,6 +60,7 @@ internal fun AccountListItem(
                 if (hasError) {
                     Icon(
                         imageVector = Icons.DualTone.Warning,
+                        contentDescription = stringResource(R.string.navigation_drawer_dropdown_account_error),
                         tint = if (selected) {
                             BoltTheme.colors.onSecondaryContainer
                         } else {
