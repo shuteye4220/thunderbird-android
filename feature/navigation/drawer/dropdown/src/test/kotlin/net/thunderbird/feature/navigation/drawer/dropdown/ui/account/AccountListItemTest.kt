@@ -43,7 +43,7 @@ internal class AccountListItemTest : ComposeTest() {
     fun `avatar monogram should not be exposed to screen readers`() {
         setAccountListItem(FakeData.MAIL_DISPLAY_ACCOUNT, showStarredCount = false)
 
-        composeTestRule.onAllNodesWithText("AC", useUnmergedTree = true).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText("AC").assertCountEquals(0)
     }
 
     private fun setAccountListItem(account: MailDisplayAccount, showStarredCount: Boolean) {

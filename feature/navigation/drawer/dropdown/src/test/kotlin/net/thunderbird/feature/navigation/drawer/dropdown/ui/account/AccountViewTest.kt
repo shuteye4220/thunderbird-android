@@ -65,7 +65,7 @@ internal class AccountViewTest : ComposeTest() {
     fun `avatar monogram should not be exposed to screen readers`() {
         setAccountView(showAccountSelection = false, nextAccountName = NEXT_ACCOUNT_NAME)
 
-        composeTestRule.onAllNodesWithText(MONOGRAM, useUnmergedTree = true).assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(MONOGRAM).assertCountEquals(0)
     }
 
     private fun header(stateResId: Int): SemanticsNodeInteraction =
