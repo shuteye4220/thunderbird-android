@@ -35,6 +35,7 @@
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/contact_picture"
+        android:importantForAccessibility="no"
         android:layout_width="@dimen/messageListContactPictureSize"
         android:layout_height="@dimen/messageListContactPictureSize"
         android:layout_marginStart="@dimen/messageListHorizontalPadding"
@@ -151,6 +152,7 @@
 
     <ImageView
         android:id="@+id/star"
+        android:importantForAccessibility="no"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/fakeAlignImageTopToTextTopPadding"
@@ -215,6 +217,7 @@
 
     <View
         android:id="@+id/star_click_area"
+        android:importantForAccessibility="no"
         android:layout_width="48dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -224,6 +227,7 @@
 
     <View
         android:id="@+id/contact_picture_click_area"
+        android:importantForAccessibility="no"
         android:layout_width="@dimen/messageListStartKeyline"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"

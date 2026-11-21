@@ -17,6 +17,7 @@ import androidx.annotation.DimenRes
 import androidx.constraintlayout.widget.Guideline
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import app.k9mail.core.ui.legacy.designsystem.atom.icon.Icons
 import com.fsck.k9.FontSizes
@@ -143,6 +144,15 @@ class MessageViewHolder(
 
             val firstLineText = if (appearance.senderAboveSubject) displayName else subject
             subjectView.text = firstLineText
+
+            // The star and selection controls are hidden from screen readers (they're available as actions on the
+            // whole row instead), so announce their state on the row.
+            val accessibilityStates = buildList {
+                if (isSelected) add(res.getString(R.string.message_list_content_description_selected))
+                if (isStarred) add(res.getString(R.string.message_list_content_description_starred))
+            }
+            val stateDescription = accessibilityStates.joinToString(separator = ", ").ifEmpty { null }
+            ViewCompat.setStateDescription(itemView, stateDescription)
 
             subjectView.contentDescription = if (isRead) {
                 null

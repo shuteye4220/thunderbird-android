@@ -1157,6 +1157,10 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="background_work_notification_remove_account">Removing account…</string>
 
     <!-- For unread messages the first line of a message list item is modified by this to improve the experience for people with screen readers. -->
+    <!-- Screen reader state of a starred message in the message list -->
+    <string name="message_list_content_description_starred">Starred</string>
+    <!-- Screen reader state of a selected message in the message list -->
+    <string name="message_list_content_description_selected">Selected</string>
     <string name="message_list_content_description_unread_prefix">unread, %s</string>
 
     <!-- Name of the "data collection" section in the general settings screen -->
