@@ -1184,6 +1184,10 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="message_list_action_toggle_star">Add or remove star</string>
     <!-- Name of the action that selects or deselects a message, depending on its state -->
     <string name="message_list_action_toggle_selection">Select or deselect</string>
+    <!-- Label of the overflow button in the message header that opens reply, reply all, forward, etc. -->
+    <string name="message_view_reply_options_description">Reply and forward options</string>
+    <!-- Label of the toolbar overflow button while a message is open (move, copy, print, show headers, etc.) -->
+    <string name="message_view_options_description">Message options</string>
     <!-- Screen reader state of a starred message in the message list -->
     <string name="message_list_content_description_starred">Starred</string>
     <!-- Screen reader state of a selected message in the message list -->

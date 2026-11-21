@@ -114,8 +114,7 @@ public class MessageHeader extends LinearLayout implements OnClickListener, OnLo
 
         View menuOverflowView = findViewById(R.id.menu_overflow);
         menuOverflowView.setOnClickListener(this);
-        String menuOverflowDescription =
-            getContext().getString(androidx.appcompat.R.string.abc_action_menu_overflow_description);
+        String menuOverflowDescription = getContext().getString(R.string.message_view_reply_options_description);
         TooltipCompat.setTooltipText(menuOverflowView, menuOverflowDescription);
 
         findViewById(R.id.participants_container).setOnClickListener(this);

@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.KeyEvent
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.animation.AnimationUtils
@@ -17,6 +18,10 @@ import androidx.activity.OnBackPressedCallback
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.view.ActionMode
+import androidx.appcompat.widget.ActionMenuView
+import androidx.appcompat.widget.Toolbar
+import androidx.appcompat.widget.TooltipCompat
+import androidx.core.view.children
 import androidx.core.view.isGone
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.drawerlayout.widget.DrawerLayout.DrawerListener
@@ -689,6 +694,40 @@ open class MessageHomeActivity :
         actionBar = supportActionBar!!
         actionBar.setDisplayHomeAsUpEnabled(true)
         actionBar.setDisplayShowTitleEnabled(false)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        val result = super.onPrepareOptionsMenu(menu)
+        updateToolbarOverflowDescription()
+        return result
+    }
+
+    /**
+     * The toolbar's overflow button is created by the framework and always labeled "More options". While a message is
+     * open, label it "Message options" so it can be told apart from the reply options button in the message header.
+     */
+    private fun updateToolbarOverflowDescription() {
+        val toolbar = findViewById<Toolbar>(R.id.toolbar) ?: return
+        // The overflow button is (re)created when the menu is laid out, so wait for that.
+        toolbar.post {
+            val description = getString(
+                if (displayMode == DisplayMode.MESSAGE_VIEW) {
+                    R.string.message_view_options_description
+                } else {
+                    androidx.appcompat.R.string.abc_action_menu_overflow_description
+                },
+            )
+            val overflowButton = toolbar.children
+                .filterIsInstance<ActionMenuView>()
+                .flatMap { it.children }
+                .firstOrNull { (it.layoutParams as? ActionMenuView.LayoutParams)?.isOverflowButton == true }
+                ?: return@post
+
+            if (overflowButton.contentDescription != description) {
+                overflowButton.contentDescription = description
+                TooltipCompat.setTooltipText(overflowButton, description)
+            }
+        }
     }
 
     private fun initializeDrawer() {
