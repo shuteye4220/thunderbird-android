@@ -41,4 +41,5 @@ val messageListUiModule = module {
         )
     }
     single { SortTypeToastProvider() }
+    single { MessageListAccessibilityActionOrderStore(context = get()) }
 }

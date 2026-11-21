@@ -181,6 +181,7 @@ class LegacyMessageListFragment :
     private val logger: Logger by inject()
     private val outboxFolderManager: OutboxFolderManager by inject()
     private val authDebugActions: AuthDebugActions by inject()
+    private val accessibilityActionOrderStore: MessageListAccessibilityActionOrderStore by inject()
     private val errorNotificationsDialogFragmentFactory: ErrorNotificationsDialogFragmentFactory by inject()
 
     private val handler = MessageListHandler(this)
@@ -925,6 +926,23 @@ class LegacyMessageListFragment :
         messagingControllerRegistry.addListener(activityListener)
 
         updateTitle()
+        refreshAccessibilityActionOrder()
+    }
+
+    /**
+     * Picks up changes made on the screen reader action order settings screen and rebinds the visible rows so their
+     * actions are offered in the new order.
+     */
+    private fun refreshAccessibilityActionOrder() {
+        val order = accessibilityActionOrderStore.load()
+        if (order == accessibilityActionOrder) return
+
+        val isFirstLoad = accessibilityActionOrder == null
+        accessibilityActionOrder = order
+        accessibilityActionRank = order.withIndex().associate { (index, action) -> action to index }
+        if (!isFirstLoad) {
+            adapter.notifyItemRangeChanged(0, adapter.itemCount)
+        }
     }
 
     override fun onPause() {
@@ -1523,11 +1541,18 @@ class LegacyMessageListFragment :
      */
     private val isOutboxForAccessibility: Boolean by lazy { isOutbox }
 
+    private var accessibilityActionOrder: List<MessageListItemAccessibilityAction>? = null
+    private var accessibilityActionRank: Map<MessageListItemAccessibilityAction, Int> = emptyMap()
+
     @Suppress("CyclomaticComplexMethod")
     override fun getAccessibilityActions(item: MessageListItem): List<MessageListItemAccessibilityAction> {
         val isOutbox = isOutboxForAccessibility
         val account = item.account
         val isDraft = item.folderId == account.draftsFolderId
+        if (accessibilityActionOrder == null) {
+            // Rows can be bound before onResume(); make sure they already use the user's order.
+            refreshAccessibilityActionOrder()
+        }
 
         return buildList {
             add(MessageListItemAccessibilityAction.Delete)
@@ -1553,7 +1578,7 @@ class LegacyMessageListFragment :
                 add(MessageListItemAccessibilityAction.Spam)
             }
             add(MessageListItemAccessibilityAction.ToggleSelection)
-        }
+        }.sortedBy { action -> accessibilityActionRank[action] ?: action.ordinal }
     }
 
     @Suppress("CyclomaticComplexMethod")

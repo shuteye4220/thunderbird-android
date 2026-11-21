@@ -264,6 +264,13 @@
                 android:title="@string/general_settings_message_list_date_time_format_title"
                 />
 
+            <Preference
+                android:key="messagelist_accessibility_action_order"
+                android:persistent="false"
+                android:title="@string/message_list_action_order_settings_title"
+                android:summary="@string/message_list_action_order_settings_summary"
+                />
+
             <CheckBoxPreference
                 android:key="messagelist_stars"
                 android:summary="@string/global_settings_flag_summary"

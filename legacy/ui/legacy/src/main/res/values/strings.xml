@@ -1157,6 +1157,23 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="background_work_notification_remove_account">Removing account…</string>
 
     <!-- For unread messages the first line of a message list item is modified by this to improve the experience for people with screen readers. -->
+    <!-- Title of the settings screen for ordering the screen reader actions on messages in the message list -->
+    <string name="message_list_action_order_settings_title">Screen reader message actions</string>
+    <string name="message_list_action_order_settings_summary">Choose the order of message actions in your screen reader\'s actions menu</string>
+    <string name="message_list_action_order_settings_description">These actions are offered on each message in the message list through your screen reader\'s actions menu. Actions that don\'t apply to a message, such as Archive in the Archive folder, are skipped.</string>
+    <string name="message_list_action_order_reset">Reset to default order</string>
+    <!-- Screen reader state of an action in the order list. %1$d is its position, %2$d the number of actions. -->
+    <string name="message_list_action_order_position">Position <xliff:g id="position">%1$d</xliff:g> of <xliff:g id="count">%2$d</xliff:g></string>
+    <string name="message_list_action_order_move_up">Move up</string>
+    <string name="message_list_action_order_move_down">Move down</string>
+    <string name="message_list_action_order_move_to_top">Move to top</string>
+    <string name="message_list_action_order_move_to_bottom">Move to bottom</string>
+    <!-- Name of the action that marks a message as read or unread, depending on its state -->
+    <string name="message_list_action_toggle_read">Mark as read or unread</string>
+    <!-- Name of the action that adds or removes a message's star, depending on its state -->
+    <string name="message_list_action_toggle_star">Add or remove star</string>
+    <!-- Name of the action that selects or deselects a message, depending on its state -->
+    <string name="message_list_action_toggle_selection">Select or deselect</string>
     <!-- Screen reader state of a starred message in the message list -->
     <string name="message_list_content_description_starred">Starred</string>
     <!-- Screen reader state of a selected message in the message list -->

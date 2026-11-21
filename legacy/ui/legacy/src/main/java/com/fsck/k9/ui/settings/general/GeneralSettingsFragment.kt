@@ -21,6 +21,7 @@ import com.fsck.k9.ui.BuildConfig
 import com.fsck.k9.ui.R
 import com.fsck.k9.ui.base.extensions.withArguments
 import com.fsck.k9.ui.observe
+import com.fsck.k9.ui.settings.messagelistactions.MessageListActionOrderSettingsActivity
 import com.fsck.k9.ui.settings.notificationactions.NotificationActionsSettingsActivity
 import com.fsck.k9.ui.settings.remove
 import com.google.android.material.snackbar.Snackbar
@@ -85,6 +86,11 @@ class GeneralSettingsFragment : PreferenceFragmentCompat() {
         findPreference<Preference>("notification_actions_settings")?.onPreferenceClickListener =
             Preference.OnPreferenceClickListener {
                 context?.let { NotificationActionsSettingsActivity.start(it) }
+                true
+            }
+        findPreference<Preference>("messagelist_accessibility_action_order")?.onPreferenceClickListener =
+            Preference.OnPreferenceClickListener {
+                context?.let { MessageListActionOrderSettingsActivity.start(it) }
                 true
             }
         findPreference<Preference>("remote_feature_flag")?.onPreferenceClickListener =
