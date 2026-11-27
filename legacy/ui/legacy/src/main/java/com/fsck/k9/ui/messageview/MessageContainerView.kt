@@ -36,6 +36,8 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.fsck.k9.helper.ClipboardManager
 import com.fsck.k9.helper.Utility
 import com.fsck.k9.mail.Address
@@ -45,10 +47,17 @@ import com.fsck.k9.mailstore.AttachmentViewInfo
 import com.fsck.k9.mailstore.MessageViewInfo
 import com.fsck.k9.message.html.DisplayHtml
 import com.fsck.k9.ui.R
+import com.fsck.k9.ui.messageview.plaintext.HtmlToTextBlocks
+import com.fsck.k9.ui.messageview.plaintext.PlainTextMessageRenderer
+import com.fsck.k9.ui.messageview.plaintext.TextBlock
 import com.fsck.k9.view.MessageWebView
 import com.fsck.k9.view.MessageWebView.OnPageFinishedListener
 import com.fsck.k9.view.WebViewConfigProvider
 import com.google.android.material.textview.MaterialTextView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.thunderbird.core.android.contact.ContactIntentHelper
 import net.thunderbird.components.ui.bolt.theme.BoltTheme
 import net.thunderbird.core.ui.contract.mvi.observeWithoutEffect
@@ -75,6 +84,9 @@ class MessageContainerView(context: Context, attrs: AttributeSet?) :
     private lateinit var layoutInflater: LayoutInflater
 
     private lateinit var messageContentView: MessageWebView
+    private lateinit var plainTextContentView: LinearLayout
+    private val htmlToTextBlocks = HtmlToTextBlocks()
+    private var plainTextJob: Job? = null
     private lateinit var attachmentsContainer: ViewGroup
     private lateinit var unsignedTextContainer: View
     private lateinit var unsignedTextDivider: View
@@ -105,6 +117,7 @@ class MessageContainerView(context: Context, attrs: AttributeSet?) :
             visibility = VISIBLE
         }
 
+        plainTextContentView = findViewById(R.id.message_plain_text_content)
         attachmentsContainer = findViewById(R.id.attachments_container)
         unsignedTextContainer = findViewById(R.id.message_unsigned_container)
         unsignedTextDivider = findViewById(R.id.message_unsigned_divider)
@@ -464,14 +477,25 @@ class MessageContainerView(context: Context, attrs: AttributeSet?) :
             }
         }
 
-        val textToDisplay = messageText
-            ?: displayHtml.wrapStatusMessage(context.getString(R.string.webview_empty_message))
+        if (renderPlainFormat) {
+            // Use the HTML version so headings and links can be kept; it falls back to the text/plain part.
+            displayPlainText(
+                html = messageViewInfo.text ?: messageText,
+                onRenderingFinishedListener = onRenderingFinishedListener,
+            )
+        } else {
+            messageContentView.isVisible = true
+            plainTextContentView.isGone = true
 
-        displayHtmlContentWithInlineAttachments(
-            htmlText = textToDisplay,
-            attachmentResolver = messageViewInfo.attachmentResolver,
-            onPageFinishedListener = onRenderingFinishedListener::onLoadFinished,
-        )
+            val textToDisplay = messageText
+                ?: displayHtml.wrapStatusMessage(context.getString(R.string.webview_empty_message))
+
+            displayHtmlContentWithInlineAttachments(
+                htmlText = textToDisplay,
+                attachmentResolver = messageViewInfo.attachmentResolver,
+                onPageFinishedListener = onRenderingFinishedListener::onLoadFinished,
+            )
+        }
 
         if (!messageViewInfo.extraText.isNullOrEmpty()) {
             unsignedTextContainer.isVisible = true
@@ -490,8 +514,40 @@ class MessageContainerView(context: Context, attrs: AttributeSet?) :
         messageContentView.displayHtmlContentWithInlineAttachments(htmlText, attachmentResolver, onPageFinishedListener)
     }
 
+    /**
+     * Shows the message as native text (paragraphs, headings and links only) instead of in the WebView, so screen
+     * readers can read it by character, word and line.
+     */
+    private fun displayPlainText(html: String?, onRenderingFinishedListener: OnRenderingFinishedListener) {
+        messageContentView.isGone = true
+        plainTextContentView.isVisible = true
+
+        val textScale = webViewConfigProvider.createForMessageView().textZoom / DEFAULT_TEXT_ZOOM
+        val renderer = PlainTextMessageRenderer(context)
+        val render = { blocks: List<TextBlock> ->
+            val blocksToShow = blocks.ifEmpty { listOf(TextBlock(context.getString(R.string.webview_empty_message))) }
+            renderer.render(plainTextContentView, blocksToShow, textScale)
+            onRenderingFinishedListener.onLoadFinished()
+        }
+
+        plainTextJob?.cancel()
+        val scope = findViewTreeLifecycleOwner()?.lifecycleScope
+        if (html == null) {
+            render(emptyList())
+        } else if (scope == null) {
+            render(htmlToTextBlocks.convert(html))
+        } else {
+            // Parsing large HTML messages can take a while, so keep it off the main thread.
+            plainTextJob = scope.launch {
+                val blocks = withContext(Dispatchers.Default) { htmlToTextBlocks.convert(html) }
+                render(blocks)
+            }
+        }
+    }
+
     private fun refreshDisplayedContent() {
-        val htmlText = checkNotNull(currentHtmlText)
+        // Nothing to refresh when the message is shown as plain text.
+        val htmlText = currentHtmlText ?: return
 
         messageContentView.displayHtmlContentWithInlineAttachments(
             htmlText = htmlText,
@@ -573,6 +629,10 @@ class MessageContainerView(context: Context, attrs: AttributeSet?) :
         currentHtmlText = null
         currentAttachmentResolver = null
 
+        plainTextJob?.cancel()
+        plainTextJob = null
+        plainTextContentView.removeAllViews()
+
         /*
          * Clear the WebView content
          *
@@ -621,5 +681,7 @@ class MessageContainerView(context: Context, attrs: AttributeSet?) :
 
         // DownloadManager only supports http and https URIs
         private val supportedDownloadUriSchemes = setOf("http", "https")
+
+        private const val DEFAULT_TEXT_ZOOM = 100f
     }
 }

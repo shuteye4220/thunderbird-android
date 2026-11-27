@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.preferencex.datetimepicker)
     implementation(libs.preferencex.colorpicker)
     implementation(libs.androidx.recyclerview)
+    implementation(libs.jsoup)
     implementation(projects.uiUtils.linearLayoutManager)
     implementation(projects.uiUtils.itemTouchHelper)
     implementation(libs.androidx.lifecycle.runtime.ktx)
