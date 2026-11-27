@@ -185,6 +185,18 @@ class MessageListAdapter internal constructor(
         return messagesMap[uniqueId]
     }
 
+    /**
+     * Returns the ID of the message that should take over when the message with [uniqueId] is removed: the next one,
+     * or the previous one if it's the last message. Returns `null` if there is no such message.
+     */
+    fun getNeighborMessageId(uniqueId: Long): Long? {
+        val messages = messages
+        val index = messages.indexOfFirst { it.uniqueId == uniqueId }
+        if (index == -1) return null
+
+        return (messages.getOrNull(index + 1) ?: messages.getOrNull(index - 1))?.uniqueId
+    }
+
     fun getItem(messageReference: MessageReference): MessageListItem? {
         return viewItems
             .filterMessageListItem()

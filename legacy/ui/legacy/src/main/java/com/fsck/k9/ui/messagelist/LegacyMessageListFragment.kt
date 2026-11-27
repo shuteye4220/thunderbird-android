@@ -11,6 +11,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.Discouraged
@@ -132,6 +133,7 @@ import net.thunderbird.feature.mail.message.list.R as MessageListApiR
 
 const val MAXIMUM_MESSAGE_SORT_OVERRIDES = 3
 const val MINIMUM_CLICK_INTERVAL = 200L
+private const val PENDING_ACCESSIBILITY_FOCUS_TIMEOUT_MS = 2 * 60 * 1000L
 const val RECENT_CHANGES_SNACKBAR_DURATION = 10 * 1000
 
 private const val TAG = "BaseMessageListFragment"
@@ -1547,6 +1549,61 @@ class LegacyMessageListFragment :
     private var accessibilityActionRank: Map<MessageListItemAccessibilityAction, Int> = emptyMap()
     private var hiddenAccessibilityActions: Set<MessageListItemAccessibilityAction> = emptySet()
 
+    /**
+     * Where screen reader focus should go once a message removed via a screen reader action (delete, archive, ...)
+     * disappears from the list. Without this, the focused row vanishes and the screen reader has to guess where to go,
+     * which is sometimes the toolbar's "Navigate up" button.
+     */
+    private var pendingAccessibilityFocus: PendingAccessibilityFocus? = null
+
+    private class PendingAccessibilityFocus(
+        val removedUniqueId: Long,
+        val targetUniqueId: Long,
+        val requestedAt: Long,
+    )
+
+    private fun MessageListItemAccessibilityAction.mayRemoveMessage(item: MessageListItem): Boolean = when (this) {
+        MessageListItemAccessibilityAction.Delete,
+        MessageListItemAccessibilityAction.Move,
+        MessageListItemAccessibilityAction.Spam,
+        -> true
+
+        MessageListItemAccessibilityAction.Archive -> item.account.hasArchiveFolder()
+        else -> false
+    }
+
+    /**
+     * Called after the list was updated. If the message removed by a screen reader action is gone, move screen reader
+     * focus to the message that took its place.
+     */
+    private fun movePendingAccessibilityFocus() {
+        val pending = pendingAccessibilityFocus ?: return
+        if (SystemClock.elapsedRealtime() - pending.requestedAt > PENDING_ACCESSIBILITY_FOCUS_TIMEOUT_MS) {
+            pendingAccessibilityFocus = null
+            return
+        }
+        // Not removed (yet), e.g. a confirmation dialog or the folder chooser is still open.
+        if (adapter.getItemById(pending.removedUniqueId) != null) return
+
+        pendingAccessibilityFocus = null
+        val recyclerView = recyclerView ?: return
+        val target = adapter.getItemById(pending.targetUniqueId) ?: return
+        val position = adapter.getPosition(target) ?: return
+
+        // Wait for the RecyclerView to lay out the updated list.
+        recyclerView.post { focusMessageRow(recyclerView, pending.targetUniqueId, position, allowScroll = true) }
+    }
+
+    private fun focusMessageRow(recyclerView: RecyclerView, uniqueId: Long, position: Int, allowScroll: Boolean) {
+        val viewHolder = recyclerView.findViewHolderForItemId(uniqueId)
+        if (viewHolder != null) {
+            viewHolder.itemView.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null)
+        } else if (allowScroll) {
+            recyclerView.scrollToPosition(position)
+            recyclerView.post { focusMessageRow(recyclerView, uniqueId, position, allowScroll = false) }
+        }
+    }
+
     @Suppress("CyclomaticComplexMethod")
     override fun getAccessibilityActions(item: MessageListItem): List<MessageListItemAccessibilityAction> {
         val isOutbox = isOutboxForAccessibility
@@ -1592,6 +1649,18 @@ class LegacyMessageListFragment :
     override fun onAccessibilityAction(item: MessageListItem, action: MessageListItemAccessibilityAction) {
         // Guard against stale actions, e.g. if the account's folder configuration changed since the item was bound.
         if (action !in getAccessibilityActions(item)) return
+
+        pendingAccessibilityFocus = if (action.mayRemoveMessage(item)) {
+            adapter.getNeighborMessageId(item.uniqueId)?.let { targetUniqueId ->
+                PendingAccessibilityFocus(
+                    removedUniqueId = item.uniqueId,
+                    targetUniqueId = targetUniqueId,
+                    requestedAt = SystemClock.elapsedRealtime(),
+                )
+            }
+        } else {
+            null
+        }
 
         val messageReference = item.messageReference
         when (action) {
@@ -2175,6 +2244,7 @@ class LegacyMessageListFragment :
             }
             addAll(messageListItems.map { MessageListViewItem.Message(it) })
         }
+        movePendingAccessibilityFocus()
         updateEmptyState(messageListInfo)
 
         rememberedSelected?.let {
