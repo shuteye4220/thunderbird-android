@@ -138,7 +138,7 @@ class WebViewGranularityProbeTest {
             }
 
             when {
-                event != null -> "\"${event.traversedText()}\""
+                event != null -> event.describeTraversal(node)
                 performed -> "accepted, no event"
                 else -> "refused"
             }
@@ -147,11 +147,17 @@ class WebViewGranularityProbeTest {
         return (if (focused) "" else "(focus refused) ") + steps.joinToString(", ")
     }
 
-    private fun AccessibilityEvent.traversedText(): String {
-        val fullText = text.joinToString(separator = "")
+    /**
+     * Describes a text traversal event as `"text"[from-to]`. Screen readers read the moved-over text from the event's
+     * own text or, if that's empty (as with WebView), from the source node's text.
+     */
+    private fun AccessibilityEvent.describeTraversal(focusedNode: AccessibilityNodeInfo): String {
+        val eventText = text.joinToString(separator = "")
+        val fullText = eventText.ifEmpty { (source ?: focusedNode).text?.toString().orEmpty() }
+        val textOrigin = if (eventText.isEmpty()) "node" else "event"
         val from = fromIndex.coerceIn(0, fullText.length)
         val to = toIndex.coerceIn(from, fullText.length)
-        return fullText.substring(from, to)
+        return "\"${fullText.substring(from, to)}\"[$fromIndex-$toIndex,$textOrigin]"
     }
 
     private fun describeGranularities(mask: Int): String {
