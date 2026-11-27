@@ -88,9 +88,7 @@ internal fun FolderListItem(
                     else -> onClick(displayFolder)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .subfolderSemantics(isExpanded, treeFolder),
+            modifier = Modifier.fillMaxWidth().subfolderSemantics(isExpanded, treeFolder),
             icon = { Icon(imageVector = mapFolderIcon(displayFolder)) },
         )
 
