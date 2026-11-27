@@ -62,8 +62,6 @@ internal fun FolderListItem(
         starredCount = treeFolder.totalStarredCount
     }
 
-    val hasSubfolders = treeFolder !== null && treeFolder.children.isNotEmpty()
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -92,7 +90,7 @@ internal fun FolderListItem(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (hasSubfolders) Modifier.subfolderSemantics(isExpanded) else Modifier),
+                .subfolderSemantics(isExpanded, treeFolder),
             icon = { Icon(imageVector = mapFolderIcon(displayFolder)) },
         )
 
@@ -195,10 +193,12 @@ private fun mapUnifiedFolderName(folder: UnifiedDisplayFolder): String {
 
 /**
  * The small expand button is hidden from screen readers (see [NavigationDrawerLabel]); expose its state and action on
- * the folder row instead.
+ * the folder row instead. Does nothing for folders without subfolders.
  */
 @Composable
-private fun Modifier.subfolderSemantics(isExpanded: MutableState<Boolean>): Modifier {
+private fun Modifier.subfolderSemantics(isExpanded: MutableState<Boolean>, treeFolder: DisplayTreeFolder?): Modifier {
+    if (treeFolder == null || treeFolder.children.isEmpty()) return this
+
     val expandedState = stringResource(
         if (isExpanded.value) {
             R.string.navigation_drawer_dropdown_account_view_expanded

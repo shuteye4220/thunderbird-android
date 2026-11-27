@@ -48,7 +48,7 @@ jobs:
       # Report-only, so a style finding doesn't block the APK.
       - name: Run detekt on changed modules
         continue-on-error: true
-        run: ./gradlew --no-daemon :legacy:ui:legacy:detekt :feature:navigation:drawer:dropdown:detekt
+        run: ./gradlew --no-daemon --continue :legacy:ui:legacy:detekt :feature:navigation:drawer:dropdown:detekt
 
       - name: Build K-9 Mail (foss debug)
         run: ./gradlew --no-daemon :app-k9mail:assembleFossDebug
