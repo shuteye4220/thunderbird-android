@@ -91,20 +91,22 @@ internal class PlainTextMessageRenderer(private val context: Context) {
     }
 
     private fun handleLinkTouch(textView: TextView, event: MotionEvent): Boolean {
-        // With explore by touch on, taps are handled by the screen reader (links are reachable via its actions).
-        if (accessibilityManager?.isTouchExplorationEnabled == true) return false
-
         val action = event.actionMasked
-        if (action != MotionEvent.ACTION_DOWN && action != MotionEvent.ACTION_UP) return false
+        val isTap = action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP
+        // With explore by touch on, taps are handled by the screen reader (links are reachable via its actions).
+        val isTouchExploration = accessibilityManager?.isTouchExplorationEnabled == true
 
-        val offset = textView.getOffsetForPosition(event.x, event.y)
-        val text = textView.text as? Spanned ?: return false
-        val span = text.getSpans(offset, offset, MessageLinkSpan::class.java).firstOrNull() ?: return false
-
-        if (action == MotionEvent.ACTION_UP) {
+        val span = if (isTap && !isTouchExploration) findLinkAt(textView, event) else null
+        if (span != null && action == MotionEvent.ACTION_UP) {
             span.onClick(textView)
         }
-        return true
+        return span != null
+    }
+
+    private fun findLinkAt(textView: TextView, event: MotionEvent): MessageLinkSpan? {
+        val text = textView.text as? Spanned ?: return null
+        val offset = textView.getOffsetForPosition(event.x, event.y)
+        return text.getSpans(offset, offset, MessageLinkSpan::class.java).firstOrNull()
     }
 
     private fun openUrl(url: String) {
@@ -129,18 +131,19 @@ internal class PlainTextMessageRenderer(private val context: Context) {
         }
     }
 
-    private fun textSizeFor(block: TextBlock): Float = when (block.headingLevel) {
-        0 -> BODY_TEXT_SIZE_SP
-        1 -> 24f
-        2 -> 22f
-        3 -> 20f
-        else -> 18f
+    private fun textSizeFor(block: TextBlock): Float {
+        if (!block.isHeading) return BODY_TEXT_SIZE_SP
+        return HEADING_TEXT_SIZES_SP.getOrElse(block.headingLevel - 1) { MINOR_HEADING_TEXT_SIZE_SP }
     }
 
     private fun dp(value: Int): Int = (value * density).toInt()
 
     private companion object {
         const val BODY_TEXT_SIZE_SP = 16f
+        const val MINOR_HEADING_TEXT_SIZE_SP = 18f
+
+        /** Text sizes of h1, h2 and h3; smaller headings use [MINOR_HEADING_TEXT_SIZE_SP]. */
+        val HEADING_TEXT_SIZES_SP = floatArrayOf(24f, 22f, 20f)
         const val HORIZONTAL_PADDING_DP = 16
         const val PARAGRAPH_PADDING_DP = 4
         const val HEADING_TOP_PADDING_DP = 12

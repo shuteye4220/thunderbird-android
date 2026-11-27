@@ -151,29 +151,46 @@ private fun ActionOrderRow(
                 .weight(1f)
                 .alpha(if (isShown) 1f else HIDDEN_ACTION_ALPHA),
         )
-        Row(
-            // Exposed as the row's toggle state and custom actions instead.
-            modifier = Modifier.clearAndSetSemantics {},
-            horizontalArrangement = Arrangement.spacedBy(BoltTheme.spacings.default),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Switch(
-                checked = isShown,
-                onCheckedChange = { onShownChange(action, it) },
-            )
-            ButtonIcon(
-                onClick = { onMove(action, index - 1) },
-                imageVector = Icons.Outlined.ExpandLess,
-                enabled = canMoveUp,
-                contentDescription = moveUpLabel,
-            )
-            ButtonIcon(
-                onClick = { onMove(action, index + 1) },
-                imageVector = Icons.Outlined.ExpandMore,
-                enabled = canMoveDown,
-                contentDescription = moveDownLabel,
-            )
-        }
+        ActionRowControls(
+            isShown = isShown,
+            onShownChange = { onShownChange(action, it) },
+            onMoveUp = if (canMoveUp) ({ onMove(action, index - 1) }) else null,
+            onMoveDown = if (canMoveDown) ({ onMove(action, index + 1) }) else null,
+        )
+    }
+}
+
+/**
+ * The switch and arrow buttons for touch users. Hidden from screen readers, which get the same functions as the row's
+ * state and custom actions instead.
+ */
+@Composable
+private fun ActionRowControls(
+    isShown: Boolean,
+    onShownChange: (Boolean) -> Unit,
+    onMoveUp: (() -> Unit)?,
+    onMoveDown: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.clearAndSetSemantics {},
+        horizontalArrangement = Arrangement.spacedBy(BoltTheme.spacings.default),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Switch(
+            checked = isShown,
+            onCheckedChange = onShownChange,
+        )
+        ButtonIcon(
+            onClick = { onMoveUp?.invoke() },
+            imageVector = Icons.Outlined.ExpandLess,
+            enabled = onMoveUp != null,
+        )
+        ButtonIcon(
+            onClick = { onMoveDown?.invoke() },
+            imageVector = Icons.Outlined.ExpandMore,
+            enabled = onMoveDown != null,
+        )
     }
 }
 

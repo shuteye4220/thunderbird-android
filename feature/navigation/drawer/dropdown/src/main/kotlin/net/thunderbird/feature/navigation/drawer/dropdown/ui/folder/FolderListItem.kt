@@ -63,20 +63,6 @@ internal fun FolderListItem(
     }
 
     val hasSubfolders = treeFolder !== null && treeFolder.children.isNotEmpty()
-    val expandedState = stringResource(
-        if (isExpanded.value) {
-            R.string.navigation_drawer_dropdown_account_view_expanded
-        } else {
-            R.string.navigation_drawer_dropdown_account_view_collapsed
-        },
-    )
-    val toggleSubfoldersLabel = stringResource(
-        if (isExpanded.value) {
-            R.string.navigation_drawer_dropdown_folder_collapse_subfolders
-        } else {
-            R.string.navigation_drawer_dropdown_folder_expand_subfolders
-        },
-    )
 
     Column(
         modifier = modifier
@@ -106,19 +92,7 @@ internal fun FolderListItem(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics {
-                    // The small expand button is hidden from screen readers (see NavigationDrawerLabel); expose its
-                    // state and action on the folder row instead.
-                    if (hasSubfolders) {
-                        stateDescription = expandedState
-                        customActions = listOf(
-                            CustomAccessibilityAction(toggleSubfoldersLabel) {
-                                isExpanded.value = !isExpanded.value
-                                true
-                            },
-                        )
-                    }
-                },
+                .then(if (hasSubfolders) Modifier.subfolderSemantics(isExpanded) else Modifier),
             icon = { Icon(imageVector = mapFolderIcon(displayFolder)) },
         )
 
@@ -216,6 +190,38 @@ private fun mapUnifiedFolderName(folder: UnifiedDisplayFolder): String {
         FolderRole.ARCHIVE -> stringResource(R.string.navigation_drawer_dropdown_unified_archive_title)
         FolderRole.SPAM -> stringResource(R.string.navigation_drawer_dropdown_unified_spam_title)
         FolderRole.TRASH -> stringResource(R.string.navigation_drawer_dropdown_unified_trash_title)
+    }
+}
+
+/**
+ * The small expand button is hidden from screen readers (see [NavigationDrawerLabel]); expose its state and action on
+ * the folder row instead.
+ */
+@Composable
+private fun Modifier.subfolderSemantics(isExpanded: MutableState<Boolean>): Modifier {
+    val expandedState = stringResource(
+        if (isExpanded.value) {
+            R.string.navigation_drawer_dropdown_account_view_expanded
+        } else {
+            R.string.navigation_drawer_dropdown_account_view_collapsed
+        },
+    )
+    val toggleSubfoldersLabel = stringResource(
+        if (isExpanded.value) {
+            R.string.navigation_drawer_dropdown_folder_collapse_subfolders
+        } else {
+            R.string.navigation_drawer_dropdown_folder_expand_subfolders
+        },
+    )
+
+    return semantics {
+        stateDescription = expandedState
+        customActions = listOf(
+            CustomAccessibilityAction(toggleSubfoldersLabel) {
+                isExpanded.value = !isExpanded.value
+                true
+            },
+        )
     }
 }
 

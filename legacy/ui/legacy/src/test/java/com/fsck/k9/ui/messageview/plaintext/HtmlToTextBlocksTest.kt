@@ -57,7 +57,8 @@ class HtmlToTextBlocksTest {
     fun `scripts, styles, hidden content and images should be dropped`() {
         val result = testSubject.convert(
             """<style>p { color: red }</style><script>evil()</script>""" +
-                """<div style="display: none">Preheader</div><p hidden>Hidden</p><img src="z.png" alt="Pic"><p>Shown</p>""",
+                """<div style="display: none">Preheader</div><p hidden>Hidden</p>""" +
+                """<img src="z.png" alt="Pic"><p>Shown</p>""",
         )
 
         assertThat(result).containsExactly(TextBlock("Shown"))
