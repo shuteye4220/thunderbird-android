@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - a11y-message-actions
+    paths-ignore:
+      - 'legacy/ui/legacy/src/androidTest/**'
+      - '.github/workflows/a11y-webview-probe.yml'
   workflow_dispatch:
 
 permissions:

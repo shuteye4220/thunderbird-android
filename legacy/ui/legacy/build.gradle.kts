@@ -52,6 +52,11 @@ dependencies {
     implementation(libs.preferencex.colorpicker)
     implementation(libs.androidx.recyclerview)
     implementation(libs.jsoup)
+
+    // Used by the WebView screen reader probe (src/androidTest), run by .github/workflows/a11y-webview-probe.yml
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit.ktx)
     implementation(projects.uiUtils.linearLayoutManager)
     implementation(projects.uiUtils.itemTouchHelper)
     implementation(libs.androidx.lifecycle.runtime.ktx)
